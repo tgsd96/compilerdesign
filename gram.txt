@@ -1,0 +1,4 @@
+A->Bxy|x
+B->CD
+C->A|c
+D->d
