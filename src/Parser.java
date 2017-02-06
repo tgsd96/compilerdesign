@@ -8,6 +8,7 @@ public class Parser {
     public Parser(String filename){
         this.filename = filename;
     }
+
     public  void removeLeftRecursion() throws IOException {
         FileReader in = null;
         try {
@@ -57,7 +58,7 @@ public class Parser {
                     productions.add(new Tuple<String,ArrayList<String>>(lines[0],rhs));
                 }
             }
-
+            ArrayList<Tuple<String,ArrayList<String>>> newproductions = new ArrayList<>();
             //array that stores variable for removing immediate left recursion
             String[] alphabeta = {"!","@","#","$","%","^","&","*","(",")","-","+","/",";","="};
             int alphabetaCount = 0;
@@ -76,6 +77,7 @@ public class Parser {
                         if(AiLhs.toCharArray()[0]==Ajy.toCharArray()[0]) {
                             //System.out.println(productions.get(j).val2.get(k));
                             ArrayList<String> temp = new ArrayList<>();
+                            //
                             for (String zedd:AiRhs) {
                                 //System.out.println("Here:");
                                 //if (Character.isLowerCase(AjRhs.get(l).toCharArray()[0]))
@@ -84,7 +86,7 @@ public class Parser {
                                     //System.out.println(AjRhs.get(l) + Ajy.substring(1));
                                 }
                             }
-                            // productions.get(i).val2.addAll(temp);
+                            //productions.get(i).val2.addAll(temp);
                             productions.get(j).val2.remove(k);
                         }
                     }
@@ -101,14 +103,14 @@ public class Parser {
                                 String beta = AiRhs.get(z);
                                 if(beta.toCharArray()[0]!=AiLhs.toCharArray()[0]){
                                     //System.out.println(beta);
-                                    temp.add(beta+alphabeta[alphabetaCount]);
+                                    temp.add(beta+AiLhs.toCharArray()[0]+"\'");
                                 }
                             }
                             productions.get(k).val2.addAll(temp);
                             ArrayList<String> newRhs = new ArrayList<>();
-                            newRhs.add("$");
-                            newRhs.add(AiRhs.get(l).substring(1)+alphabeta[alphabetaCount]);
-                            productions.add(new Tuple<>(alphabeta[alphabetaCount],newRhs));
+                            newRhs.add("\u03B5");
+                            newRhs.add(AiRhs.get(l).substring(1)+AiLhs.toCharArray()[0]+"\'");
+                            newproductions.add(new Tuple<>(AiLhs.toCharArray()[0]+"\'",newRhs));
                             alphabetaCount++;
                             productions.get(k).val2.remove(l);
                         }
@@ -118,6 +120,13 @@ public class Parser {
             }
             System.out.println("The productions after removing left recursion are:");
             for(Tuple<String,ArrayList<String>> x:productions){
+                System.out.print(x.val1 + "->");
+                for (int i=0;i<x.val2.size();i++) {
+                    System.out.print(x.val2.get(i)+"|");
+                }
+                System.out.print("\n");
+            }
+            for(Tuple<String,ArrayList<String>> x:newproductions){
                 System.out.print(x.val1 + "->");
                 for (int i=0;i<x.val2.size();i++) {
                     System.out.print(x.val2.get(i)+"|");
