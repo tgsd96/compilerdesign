@@ -9,9 +9,45 @@ public class Parser {
         this.filename = filename;
     }
 
-//    private void removeImmediate(ArrayList<Tuple<String,ArrayList<String>>> productions){
-//
-//    }
+    private void removeImmediate(ArrayList<Tuple<String,ArrayList<String>>> productions,ArrayList<Tuple<String,ArrayList<String>>> newproductions ){
+
+        for (int k=0;k<productions.size();k++){
+            String AiLhs = productions.get(k).val1;
+            ArrayList<String> AiRhs = productions.get(k).val2;
+            for(int l=0;l<AiRhs.size();l++){
+                if(AiLhs.toCharArray()[0]==AiRhs.get(l).toCharArray()[0]){
+                    //System.out.println(AiRhs.get(l));
+                    ArrayList<Tuple<Integer,String>> temp = new ArrayList<>();
+                    int size = AiRhs.size();
+                    //int[] index = new int[10];
+                    for (int z=0;z<size;z++){
+                        String beta = AiRhs.get(z);
+                        if(beta.toCharArray()[0]!=AiLhs.toCharArray()[0]&&beta.toCharArray()[beta.length()-1]!='\''){
+                            //System.out.println(beta);
+                            temp.add(new Tuple<>(z,beta+AiLhs.toCharArray()[0]+"\'"));
+                            //productions.get(k).val2.add(z,beta+AiLhs.toCharArray()[0]+"\'");
+
+                        }
+                    }
+                    for (int z=0;z<temp.size();z++){
+                        Tuple<Integer,String> q = temp.get(z);
+                        productions.get(k).val2.set(q.val1,q.val2);
+                    }
+                    ArrayList<String> newRhs = new ArrayList<>();
+                    newRhs.add("\u03B5");
+                    if(AiRhs.get(l).substring(1).toCharArray()[AiRhs.get(l).length()-2]=='\''){
+                        newRhs.add(AiRhs.get(l).substring(1));
+                    }
+                    else
+                        newRhs.add(AiRhs.get(l).substring(1)+AiLhs.toCharArray()[0]+"\'");
+                    newproductions.add(new Tuple<>(AiLhs.toCharArray()[0]+"\'",newRhs));
+                    //alphabetaCount++;
+                    productions.get(k).val2.remove(l);
+                }
+            }
+        }
+    }
+
     public  void removeLeftRecursion() throws IOException {
         FileReader in = null;
         try {
@@ -91,40 +127,9 @@ public class Parser {
                             productions.get(j).val2.remove(k);
                         }
                     }
-
                 }
-                for (int k=0;k<productions.size();k++){
-                    String AiLhs = productions.get(k).val1;
-                    ArrayList<String> AiRhs = productions.get(k).val2;
-                    for(int l=0;l<AiRhs.size();l++){
-                        if(AiLhs.toCharArray()[0]==AiRhs.get(l).toCharArray()[0]){
-                            //System.out.println(AiRhs.get(l));
-                            ArrayList<Tuple<Integer,String>> temp = new ArrayList<>();
-                            int size = AiRhs.size();
-                            //int[] index = new int[10];
-                            for (int z=0;z<size;z++){
-                                String beta = AiRhs.get(z);
-                                if(beta.toCharArray()[0]!=AiLhs.toCharArray()[0]){
-                                    //System.out.println(beta);
-                                    temp.add(new Tuple<>(z,beta+AiLhs.toCharArray()[0]+"\'"));
-                                    //productions.get(k).val2.add(z,beta+AiLhs.toCharArray()[0]+"\'");
+                removeImmediate(productions,newproductions);
 
-                                }
-                            }
-                            for (int z=0;z<temp.size();z++){
-                                Tuple<Integer,String> q = temp.get(z);
-                                productions.get(k).val2.set(q.val1,q.val2);
-                            }
-                            ArrayList<String> newRhs = new ArrayList<>();
-                            newRhs.add("\u03B5");
-                            newRhs.add(AiRhs.get(l).substring(1)+AiLhs.toCharArray()[0]+"\'");
-                            newproductions.add(new Tuple<>(AiLhs.toCharArray()[0]+"\'",newRhs));
-                            //alphabetaCount++;
-                            productions.get(k).val2.remove(l);
-                        }
-                    }
-
-                }
             }
             System.out.println("The productions after removing left recursion are:");
             for(Tuple<String,ArrayList<String>> x:productions){
@@ -134,10 +139,10 @@ public class Parser {
                 }
                 System.out.print("\n");
             }
-            for(Tuple<String,ArrayList<String>> x:newproductions){
-                System.out.print(x.val1 + "->");
-                for (int i=0;i<x.val2.size();i++) {
-                    System.out.print(x.val2.get(i)+"|");
+            for(Tuple<String,ArrayList<String>> y:newproductions){
+                System.out.print(y.val1 + "->");
+                for (int i=0;i<y.val2.size();i++) {
+                    System.out.print(y.val2.get(i)+"|");
                 }
                 System.out.print("\n");
             }
