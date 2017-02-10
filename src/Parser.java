@@ -9,6 +9,9 @@ public class Parser {
         this.filename = filename;
     }
 
+//    private void removeImmediate(ArrayList<Tuple<String,ArrayList<String>>> productions){
+//
+//    }
     public  void removeLeftRecursion() throws IOException {
         FileReader in = null;
         try {
@@ -60,8 +63,6 @@ public class Parser {
             }
             ArrayList<Tuple<String,ArrayList<String>>> newproductions = new ArrayList<>();
             //array that stores variable for removing immediate left recursion
-            String[] alphabeta = {"!","@","#","$","%","^","&","*","(",")","-","+","/",";","="};
-            int alphabetaCount = 0;
             int n = productions.size();
             for(int i=0;i<n;i++){
                 for (int j=0;j<i;j++){
@@ -78,11 +79,11 @@ public class Parser {
                             //System.out.println(productions.get(j).val2.get(k));
                             ArrayList<String> temp = new ArrayList<>();
                             //
-                            for (String zedd:AiRhs) {
+                            for (String prod:AiRhs) {
                                 //System.out.println("Here:");
                                 //if (Character.isLowerCase(AjRhs.get(l).toCharArray()[0]))
                                 {
-                                    productions.get(j).val2.add(zedd+Ajy.substring(1));
+                                    productions.get(j).val2.add(prod+Ajy.substring(1));
                                     //System.out.println(AjRhs.get(l) + Ajy.substring(1));
                                 }
                             }
@@ -98,20 +99,27 @@ public class Parser {
                     for(int l=0;l<AiRhs.size();l++){
                         if(AiLhs.toCharArray()[0]==AiRhs.get(l).toCharArray()[0]){
                             //System.out.println(AiRhs.get(l));
-                            ArrayList<String> temp = new ArrayList<>();
-                            for (int z=0;z<AiRhs.size();z++){
+                            ArrayList<Tuple<Integer,String>> temp = new ArrayList<>();
+                            int size = AiRhs.size();
+                            //int[] index = new int[10];
+                            for (int z=0;z<size;z++){
                                 String beta = AiRhs.get(z);
                                 if(beta.toCharArray()[0]!=AiLhs.toCharArray()[0]){
                                     //System.out.println(beta);
-                                    temp.add(beta+AiLhs.toCharArray()[0]+"\'");
+                                    temp.add(new Tuple<>(z,beta+AiLhs.toCharArray()[0]+"\'"));
+                                    //productions.get(k).val2.add(z,beta+AiLhs.toCharArray()[0]+"\'");
+
                                 }
                             }
-                            productions.get(k).val2.addAll(temp);
+                            for (int z=0;z<temp.size();z++){
+                                Tuple<Integer,String> q = temp.get(z);
+                                productions.get(k).val2.set(q.val1,q.val2);
+                            }
                             ArrayList<String> newRhs = new ArrayList<>();
                             newRhs.add("\u03B5");
                             newRhs.add(AiRhs.get(l).substring(1)+AiLhs.toCharArray()[0]+"\'");
                             newproductions.add(new Tuple<>(AiLhs.toCharArray()[0]+"\'",newRhs));
-                            alphabetaCount++;
+                            //alphabetaCount++;
                             productions.get(k).val2.remove(l);
                         }
                     }
