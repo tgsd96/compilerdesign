@@ -1,4 +1,4 @@
-A->Bxy|x
-B->CD
+A->Bxy|BxyD|
+B->CD|Cas
 C->A|c
 D->d

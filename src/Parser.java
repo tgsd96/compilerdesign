@@ -2,11 +2,152 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 
 public class Parser {
     private String filename;
-    public Parser(String filename){
+    private Parser(String filename){
         this.filename = filename;
+    }
+
+    private String greatestCommonPrefix(String a, String b){
+        int minlength = Math.min(a.length(), b.length());
+        for (int p=0;p<minlength;p++){
+            if(a.charAt(p)!=b.charAt(p)&&p!=0){
+                //System.out.println(a.substring(0,p));
+                return a.substring(0,p);
+            }
+            if(a.charAt(p)!=b.charAt(p)&&p==0){
+                //System.out.println(a.substring(0,p));
+                return null;
+            }
+        }
+        if(a.length()>b.length()){
+            return b;
+        }
+        else
+        {
+            return a;
+        }
+    }
+    private ArrayList<Tuple<String,ArrayList<String>>> getProductions() throws IOException{
+        FileReader in = null;
+        try {
+            in = new FileReader(this.filename);
+            BufferedReader reader = new BufferedReader(in);
+            String line;
+            ArrayList<Tuple<String, ArrayList<String>>> productions = new ArrayList<>();
+            Character[] var = new Character[10];
+            //int front = 0;
+            int rear = 0;
+            System.out.println("The initial productions are: ");
+            while ((line = reader.readLine()) != null) {
+                String[] lines = line.split("->");
+                System.out.print(lines[0] + "->" + lines[1] + "\n");
+                if (!lines[0].matches("[A-Z]")) {
+                    System.out.println("Wrong Format.");
+                } else {
+                    char[] tochar;
+                    tochar = lines[0].toCharArray();
+                    if (rear == 0) {
+                        var[rear] = tochar[0];
+                        rear++;
+                    } else {
+                        int i = 0;
+                        for (; i < rear; i++) {
+                            if (var[i] == tochar[0]) {
+                                break;
+                            }
+                        }
+                        if (i == rear) {
+                            var[rear] = tochar[0];
+                            rear++;
+                        }
+
+                    }
+                    ArrayList<String> rhs = new ArrayList<>();
+                    String[] prod = lines[1].split("\\|");
+                    for (String x : prod) {
+                        rhs.add(x);
+                    }
+                    productions.add(new Tuple<String, ArrayList<String>>(lines[0], rhs));
+
+                }
+            }
+            return productions;
+        }finally {
+            in.close();
+        }
+        //return null;
+    }
+
+    public void removeLeftFactoring() throws IOException{
+
+        ArrayList<Tuple<String,ArrayList<String>>> productions = getProductions();
+        ArrayList<Tuple<String,ArrayList<String>>> newproductions = new ArrayList<>();
+        for (int i=0; i<productions.size();i++){
+            ArrayList<String> AiRhs = productions.get(i).val2;
+            HashMap<String, ArrayList<Integer>> substrings = new HashMap<>();
+            for(int j=0;j<AiRhs.size();j++){
+                String prod1 = AiRhs.get(j);
+                for (int k=j+1;k<AiRhs.size();k++){
+                    String prod2 = AiRhs.get(k);
+                    String substr = greatestCommonPrefix(prod1,prod2);
+                    //System.out.println(substr);
+                    if(substr!=null) {
+                        if (substrings.get(substr)==null) {
+                            ArrayList<Integer> temp = new ArrayList<>();
+                            temp.add(j);
+                            temp.add(k);
+                            substrings.put(substr,temp);
+                        } else {
+                            ArrayList<Integer> temp = substrings.get(substr);
+                            temp.add(k);
+                            substrings.replace(substr,temp);
+                        }
+                    }
+                }
+            }
+            Iterator iterator = substrings.entrySet().iterator();
+            //System.out.println("here:");
+            while (iterator.hasNext()){
+                HashMap.Entry<String,ArrayList<Integer>> pair = (HashMap.Entry) iterator.next();
+                String prod = productions.get(i).val1;
+                ArrayList<String> newProd = new ArrayList<>();
+                System.out.println(pair.getKey()+"->"+pair.getValue());
+                int len = pair.getKey().length();
+                for(int ind : pair.getValue()) {
+                    if (productions.get(i).val2.get(ind).substring(len).length() == 0) {
+                        newProd.add("\u03B5");
+                    } else
+                        newProd.add(productions.get(i).val2.get(ind).substring(len));
+                }
+                for (int z = pair.getValue().size()-1;z>=0;z--){
+                    productions.get(i).val2.remove((int)pair.getValue().get(z));
+                }
+                productions.get(i).val2.add(pair.getKey()+prod+"\"");
+                newproductions.add(new Tuple<>(prod+"\"",newProd));
+                iterator.remove();
+            }
+        }
+        System.out.println("The productions after removing left recursion are:");
+        for(Tuple<String,ArrayList<String>> x:productions){
+            System.out.print(x.val1 + "->");
+            for (int i=0;i<x.val2.size();i++) {
+                System.out.print(x.val2.get(i)+"|");
+            }
+            System.out.print("\n");
+        }
+        for(Tuple<String,ArrayList<String>> y:newproductions){
+            System.out.print(y.val1 + "->");
+            for (int i=0;i<y.val2.size();i++) {
+                System.out.print(y.val2.get(i)+"|");
+            }
+            System.out.print("\n");
+        }
+
     }
 
     private void removeImmediate(ArrayList<Tuple<String,ArrayList<String>>> productions,ArrayList<Tuple<String,ArrayList<String>>> newproductions ){
@@ -49,54 +190,7 @@ public class Parser {
     }
 
     public  void removeLeftRecursion() throws IOException {
-        FileReader in = null;
-        try {
-            in = new FileReader(this.filename);
-            BufferedReader reader = new BufferedReader(in);
-            String line;
-            ArrayList<Tuple<String,ArrayList<String>>> productions = new ArrayList<>();
-            Character[] var = new Character[10];
-            //int front = 0;
-            int rear = 0;
-            System.out.println("The initial productions are: ");
-            while ((line=reader.readLine())!=null){
-                String[] lines= line.split("->");
-                System.out.print(lines[0]+"->"+lines[1]+"\n");
-                if(!lines[0].matches("[A-Z]")) {
-                    System.out.println("Wrong Format.");
-                }
-
-                else{
-                    char[] tochar;
-                    tochar = lines[0].toCharArray();
-                    if(rear==0){
-                        var[rear] = tochar[0];
-                        rear++;
-                    }
-                    else{
-                        int i =0;
-                        for(; i<rear;i++)
-                        {
-                            if(var[i]==tochar[0])
-                            {
-                                break;
-                            }
-                        }
-                        if(i==rear)
-                        {
-                            var[rear]=tochar[0];
-                            rear++;
-                        }
-
-                    }
-                    ArrayList<String> rhs = new ArrayList<>();
-                    String[] sads = lines[1].split("\\|");
-                    for(String x:sads) {
-                        rhs.add(x);
-                    }
-                    productions.add(new Tuple<String,ArrayList<String>>(lines[0],rhs));
-                }
-            }
+            ArrayList<Tuple<String,ArrayList<String>>> productions = getProductions();
             ArrayList<Tuple<String,ArrayList<String>>> newproductions = new ArrayList<>();
             //array that stores variable for removing immediate left recursion
             int n = productions.size();
@@ -146,8 +240,5 @@ public class Parser {
                 }
                 System.out.print("\n");
             }
-        }finally {
-            in.close();
-        }
     }
 }
