@@ -1,4 +1,6 @@
-A->Bxy|BxyD|
-B->CD|Cas
-C->A|c
-D->d
+S->ABCD
+A->a|ε
+B->b|ε
+C->c|d|ε
+D->e|ε
+

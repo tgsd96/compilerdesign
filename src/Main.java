@@ -5,7 +5,9 @@ public class Main {
         //lp.dfa();
         //lp.grammar();
         Parser parser = new Parser("gram.txt");
-        parser.removeLeftFactoring();
+        //parser.readProductions();
+        //parser.removeLeftFactoring();
+        parser.generateFirstAndFollow();
     }
 
 }

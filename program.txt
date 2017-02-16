@@ -6,3 +6,7 @@ void main()
     a=3+5;
     printf("Hello, world");
 }
+A->Bxy|BxyD|
+B->CD|Cas
+C->A|c
+D->d
