@@ -197,19 +197,53 @@ public class Parser {
         //ArrayList<Tuple<String,ArrayList<String>>> productions = getProductions();
         Map<String, Set<String>> first = new LinkedHashMap<>();
         //Set<String> first = new HashSet<>();
-        //HashMap<String, Set<String>> follow = new HashMap<>();
+        Map<String, Set<String>> follow = new HashMap<>();
 //        Map.Entry<String, Set<String>> pair = (Map.Entry)this.productions.entrySet().iterator().next();
         Iterator iterator = this.productions.entrySet().iterator();
             while(iterator.hasNext()) {
-                Map.Entry<String, ArrayList<Integer>> pair = (Map.Entry) iterator.next();
+                Map.Entry<String, ArrayList<String>> pair = (Map.Entry) iterator.next();
                 //System.out.println(pair.getKey() + "->" + pair.getValue());
                 if(pair!=null)
                 {calcFirst(pair.getKey(), first);}
-                iterator.remove();
+                //iterator.remove();
             }
+        iterator = this.productions.entrySet().iterator();
+        Map.Entry<String, ArrayList<String>> pair = (Map.Entry) iterator.next();
+        Set<String> tempSet = new HashSet();
+        tempSet.add("$");
+        follow.put(pair.getKey(),tempSet );
+        iterator = this.productions.entrySet().iterator();
+        while(iterator.hasNext()){
+            pair = (Map.Entry) iterator.next();
+            //ArrayList<String> rhs = pair.getValue();
+            for(String x : pair.getValue()){
+                for(int i = 0; i< x.length()-2;i++){
+                    Character alpha = x.substring(i,i+1).toCharArray()[0];
+                    Character beta = x.substring(i+1,i+2).toCharArray()[0];
+                    if(Character.isUpperCase(alpha)&& Character.isLowerCase(beta)){
+                        if(follow.get(x.substring(i,i+1))==null) {
+                            Set temp = new HashSet();
+                            temp.add(x.substring(i + 1, i + 2));
+                            follow.put(x.substring(i, i + 1), temp);
+                        }else{
+                            follow.get(x.substring(i,i+1)).add(x.substring(i+1,i+2));
+                        }
+                    }
+                   if(Character.isUpperCase(alpha)&&Character.isUpperCase(beta)) {
+                       if (first.get(x.substring(i + 1, i + 2)) != null) {
+                           if (follow.get(x.substring(i, i + 1)) == null)
+                               follow.put(x.substring(i, i + 1), first.get(x.substring(i + 1, i + 2)));
+                           else
+                               follow.get(x.substring(i, i + 1)).addAll(first.get(x.substring(i + 1, i + 2)));
+                       }
+                   }
+                }
+            }
+        }
 
 
         printProductions(first);
+        printProductions(follow);
 //        printProductions(this.productions);
 
     }
