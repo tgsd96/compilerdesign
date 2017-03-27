@@ -1,6 +1,5 @@
-S->ABCD
-A->a|ε
-B->b|ε
-C->c|d|ε
-D->e|ε
-
+E->TP
+P->+TP|ε
+T->FO
+O->*FO|ε
+F->(E)|i

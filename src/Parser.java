@@ -1,4 +1,7 @@
+import com.sun.corba.se.impl.orb.ParserTable;
+
 import java.io.BufferedReader;
+import java.io.CharArrayReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
@@ -6,10 +9,19 @@ import java.util.*;
 public class Parser {
     private String filename;
     private Map<String, ArrayList<String>> productions;
+    private Map<String, Set<String>> first;
+    private Map<String, Set<String>> follow;
+    private String[] newGeneratedSymbol = {"Q","Y","O","P","K","Z","B","V"};
+    private int index =0;
+    private Map<String,Map<String,Tuple<String,String>>> parseTable;
+    private ParseTable parserTable;
 
     public Parser(String filename) throws IOException {
         this.filename = filename;
         this.productions = new LinkedHashMap<>();
+        this.first = new LinkedHashMap<>();
+        this.follow = new LinkedHashMap<>();
+        this.parserTable = new ParseTable();
         try {
             readProductions();
         } catch (IOException e) {
@@ -71,7 +83,7 @@ public class Parser {
         while (iterator.hasNext()) {
             Map.Entry<String, ArrayList<Integer>> pair = (Map.Entry) iterator.next();
             System.out.println(pair.getKey() + "->" + pair.getValue());
-            iterator.remove();
+            //iterator.remove();
         }
 
     }
@@ -145,109 +157,190 @@ public class Parser {
         }
         //return null;
     }
-
-    public void calcFirst(String LHS, Map<String, Set<String>> first) {
-        if ((this.productions.get(LHS)) != null) {
+    private void findFirst(String LHS){
+        if(this.productions.get(LHS)!=null){
             ArrayList<String> RHS = this.productions.get(LHS);
-            first.putIfAbsent(LHS, new HashSet<>());
-            for (String x : RHS) {
-                if (x.equals("\u03B5")) {
-                    Set<String> set = first.get(LHS);
-                    set.add("\u03B5");
-                    first.replace(LHS, set);
-                } else if (Character.isLowerCase(x.toCharArray()[0])) {
-                    Set<String> set = first.get(LHS);
-                    set.add(x.substring(0, 1));
-                    first.replace(LHS, set);
-                    /*
-                    Set<String> prevset = first.get(Prev);
-                    prevset.add(x.substring())
-                    */
-                } else {
-                    int i = -1;
-                    do{
-                        i++;
-                        if(i<x.length()) {
-
-                            calcFirst(x.substring(i, i + 1), first);
-                            Set<String> set = first.get(LHS);
-                            Set<String> duoSet = first.get(x.substring(i, i + 1));
-                            if (duoSet != null) {
-                                for (String d : duoSet) {
-                                    if (!d.equals("\u03B5")) {
-                                        set.add(d);
-                                    }
-                                }
-//                        first.replace()
-                                first.replace(LHS, set);
+            if(first.get(LHS)==null){
+                first.put(LHS,new HashSet<>());
+                for(String valofRhs : RHS){
+                    if(valofRhs.equals("\u03B5")) {
+                        first.get(LHS).add("\u03B5");
+                    }else if (!Character.isUpperCase(valofRhs.toCharArray()[0])) {
+                        first.get(LHS).add(valofRhs.substring(0,1));
+                    }else{
+                        int i=-1;
+                        boolean hasepsilon = true;
+                        while(hasepsilon){
+                            i++;
+                            if(i>valofRhs.length()) break;
+                            findFirst(valofRhs.substring(i,i+1));
+                            first.get(LHS).addAll(first.get(valofRhs.substring(i,i+1)));
+                            if(first.get(valofRhs.substring(i,i+1)).contains("\u03B5")) continue;
+                            else {
+                                hasepsilon = false;
+                                break;
                             }
-                        }else{
-                            break;
                         }
-
-                    }while (true);
+                        if(hasepsilon==false){
+                            first.get(LHS).remove("\u03B5");
+                        }
+                    }
 
                 }
             }
         }
     }
 
-    public void generateFirstAndFollow() throws IOException {
-        //printProductions(this.productions);
-        //ArrayList<Tuple<String,ArrayList<String>>> productions = getProductions();
-        Map<String, Set<String>> first = new LinkedHashMap<>();
-        //Set<String> first = new HashSet<>();
-        Map<String, Set<String>> follow = new HashMap<>();
-//        Map.Entry<String, Set<String>> pair = (Map.Entry)this.productions.entrySet().iterator().next();
+    public void genFirst() throws IOException{
         Iterator iterator = this.productions.entrySet().iterator();
-            while(iterator.hasNext()) {
-                Map.Entry<String, ArrayList<String>> pair = (Map.Entry) iterator.next();
-                //System.out.println(pair.getKey() + "->" + pair.getValue());
-                if(pair!=null)
-                {calcFirst(pair.getKey(), first);}
-                //iterator.remove();
+        while(iterator.hasNext()) {
+            Map.Entry<String, ArrayList<String>> pair = (Map.Entry) iterator.next();
+            if(pair!=null) {
+                findFirst(pair.getKey());
             }
-        iterator = this.productions.entrySet().iterator();
+        }
+        printProductions(first);
+//        genFollow();
+    }
+
+    public void genFollow() throws IOException{
+        Iterator iterator = this.productions.entrySet().iterator();
         Map.Entry<String, ArrayList<String>> pair = (Map.Entry) iterator.next();
         Set<String> tempSet = new HashSet();
         tempSet.add("$");
-        follow.put(pair.getKey(),tempSet );
+        this.follow.put(pair.getKey(),tempSet );
         iterator = this.productions.entrySet().iterator();
-        while(iterator.hasNext()){
+        while (iterator.hasNext()){
             pair = (Map.Entry) iterator.next();
-            //ArrayList<String> rhs = pair.getValue();
             for(String x : pair.getValue()){
-                for(int i = 0; i< x.length()-2;i++){
-                    Character alpha = x.substring(i,i+1).toCharArray()[0];
-                    Character beta = x.substring(i+1,i+2).toCharArray()[0];
-                    if(Character.isUpperCase(alpha)&& Character.isLowerCase(beta)){
-                        if(follow.get(x.substring(i,i+1))==null) {
-                            Set temp = new HashSet();
-                            temp.add(x.substring(i + 1, i + 2));
-                            follow.put(x.substring(i, i + 1), temp);
-                        }else{
-                            follow.get(x.substring(i,i+1)).add(x.substring(i+1,i+2));
+                for(int i = 0; i< x.length()-1;i++) {
+                    for(int  j=i+1;j<x.length();j++) {
+                        Character alpha = x.substring(i, i+1).toCharArray()[0];
+                        Character beta = x.substring(j, j + 1).toCharArray()[0];
+                        if (Character.isUpperCase(alpha) && !Character.isUpperCase(beta)) {
+                            if (this.follow.get(x.substring(i, j)) == null) {
+                                Set<String> temp = new HashSet();
+                                temp.add(x.substring(j, j+1));
+                                this.follow.put(x.substring(i, i+1), temp);
+                            } else {
+                                this.follow.get(x.substring(i, i+1)).add(x.substring(j, j+1));
+                            }
+                            break;
+                        }
+
+                        if (Character.isUpperCase(alpha) && Character.isUpperCase(beta)) {
+                            if (this.first.get(x.substring(j, j+1)) != null) {
+                                if (this.follow.get(x.substring(i, i+1)) == null)
+                                    follow.put(x.substring(i, i + 1), first.get(x.substring(j, j+1)));
+                                else
+                                    this.follow.get(x.substring(i, i + 1)).addAll(first.get(x.substring(j, j+1)));
+                            }
+                            if(first.get(x.substring(j,j+1)).contains("ε")){
+                                continue;
+                            }else
+                            {
+                                break;
+                            }
+//                        this.follow.get(x.substring(i, i + 1)).remove("ε");
                         }
                     }
-                   if(Character.isUpperCase(alpha)&&Character.isUpperCase(beta)) {
-                       if (first.get(x.substring(i + 1, i + 2)) != null) {
-                           if (follow.get(x.substring(i, i + 1)) == null)
-                               follow.put(x.substring(i, i + 1), first.get(x.substring(i + 1, i + 2)));
-                           else
-                               follow.get(x.substring(i, i + 1)).addAll(first.get(x.substring(i + 1, i + 2)));
-                       }
-                   }
                 }
             }
         }
-
-
-        printProductions(first);
+        iterator = this.productions.entrySet().iterator();
+        while (iterator.hasNext()){
+            pair = (Map.Entry) iterator.next();
+            for(String x : pair.getValue()){
+                for(int i=x.length();i>0;i--){
+                    if(follow.get(pair.getKey())!=null){
+                        if(Character.isUpperCase(x.substring(i-1,i).toCharArray()[0])) {
+                            if (follow.get(x.substring(i - 1, i)) == null) {
+                                follow.put(x.substring(i - 1, i), follow.get(pair.getKey()));
+                            } else {
+                                follow.get(x.substring(i - 1, i)).addAll(follow.get(pair.getKey()));
+                            }
+                                if(first.get(x.substring(i-1,i)).contains("ε")){
+                                    continue;
+                                }else {
+                                    break;
+                                }
+                        }else{
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        Iterator iterator1 = this.follow.entrySet().iterator();
+        while(iterator1.hasNext()){
+            Map.Entry<String, HashSet<String>> fllw = (Map.Entry) iterator1.next();
+            if(fllw.getValue().contains("ε")){
+                fllw.getValue().remove("ε");
+            }
+        }
+        System.out.println("Follow:");
         printProductions(follow);
-//        printProductions(this.productions);
-
     }
 
+
+    public void genParseTable() throws IOException{
+        genFirst();
+        genFollow();
+        Iterator iterator = this.productions.entrySet().iterator();
+        boolean flag = true;
+        while (iterator.hasNext()) {
+            Map.Entry<String, ArrayList<String>> pair = (Map.Entry) iterator.next();
+            for (String Rhs : pair.getValue()) {
+                if(!Character.isUpperCase(Rhs.substring(0,1).toCharArray()[0]))
+                {
+                    if(!Rhs.substring(0,1).equals("ε")) {
+                        flag = parserTable.put(pair.getKey(), Rhs.substring(0, 1), pair.getKey(), Rhs);
+                        if(!flag) break;
+                    }
+                    else
+                    {
+                        for (String fllw : follow.get(pair.getKey())){
+                           flag = parserTable.put(pair.getKey(), fllw, pair.getKey(), Rhs);
+                           if(!flag) break;
+                        }
+                    }
+
+                }else {
+                    int i=0;
+                    for(;i<Rhs.length();i++) {
+                        for (String terminal : first.get(Rhs.substring(i, i+1))) {
+                            if (!terminal.equals("ε")) {
+                                flag = parserTable.put(pair.getKey(), terminal, pair.getKey(), Rhs);
+                                if(!flag) break;
+                            }
+                        }
+                        if (first.get(Rhs.substring(i,i+1)).contains("ε")){
+                            continue;
+                        }else break;
+                    }
+                    if(i==Rhs.length()){
+                        for (String fllw : follow.get(pair.getKey())){
+                            flag = parserTable.put(pair.getKey(), fllw, pair.getKey(), "ε");
+                            if(!flag){
+                                break;
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+        if(flag) {
+            parserTable.print();
+            parserTable.parse("E", "i+i*i");
+        }else{
+            System.out.println("Multiple entries are found! Exiting process!");
+        }
+    }
+
+/**
+    Remove Left factoring and other string transformations below
+ */
     public void removeLeftFactoring() throws IOException {
 
         ArrayList<Tuple<String, ArrayList<String>>> productions = getProductions();
@@ -276,7 +369,6 @@ public class Parser {
                 }
             }
             Iterator iterator = substrings.entrySet().iterator();
-            //System.out.println("here:");
             while (iterator.hasNext()) {
                 HashMap.Entry<String, ArrayList<Integer>> pair = (HashMap.Entry) iterator.next();
                 String prod = productions.get(i).val1;
@@ -328,7 +420,7 @@ public class Parser {
                     //int[] index = new int[10];
                     for (int z = 0; z < size; z++) {
                         String beta = AiRhs.get(z);
-                        if (beta.toCharArray()[0] != AiLhs.toCharArray()[0] && beta.toCharArray()[beta.length() - 1] != '\'') {
+                        if (beta.toCharArray()[0] != AiLhs.toCharArray()[0]) {
                             //System.out.println(beta);
                             temp.add(new Tuple<>(z, beta + AiLhs.toCharArray()[0] + "\'"));
                             //productions.get(k).val2.add(z,beta+AiLhs.toCharArray()[0]+"\'");
@@ -393,17 +485,24 @@ public class Parser {
         System.out.println("The productions after removing left recursion are:");
         for (Tuple<String, ArrayList<String>> x : productions) {
             System.out.print(x.val1 + "->");
+            ArrayList<String> rhs = new ArrayList<>();
             for (int i = 0; i < x.val2.size(); i++) {
                 System.out.print(x.val2.get(i) + "|");
+                rhs.add(x.val2.get(i));
             }
+            this.productions.put(x.val1, rhs);
             System.out.print("\n");
         }
         for (Tuple<String, ArrayList<String>> y : newproductions) {
             System.out.print(y.val1 + "->");
+            ArrayList<String> rhs = new ArrayList<>();
             for (int i = 0; i < y.val2.size(); i++) {
                 System.out.print(y.val2.get(i) + "|");
+                rhs.add(y.val2.get(i));
             }
+            this.productions.put(y.val1, rhs);
             System.out.print("\n");
         }
+        printProductions(this.productions);
     }
 }
